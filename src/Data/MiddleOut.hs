@@ -53,26 +53,14 @@ class MiddleOut f where
   foldsl :: Monoid m => (m -> m -> m -> a -> b) -> (m -> a -> m) -> f a -> (f b,m)
   foldsl f g = foldo mappend (\pm cm m a -> (f pm cm m a, g pm a))
 
-  foldsl' :: Monoid m => (m -> m -> m -> a -> b) -> (m -> a -> m) -> f a -> (f b,m)
-  foldsl' f g = foldo (\x y -> let !z = mappend x y in z) (\pm cm m a -> (f pm cm m a, g pm a))
-
   foldsr :: Monoid m => (m -> m -> m -> a -> b) -> (m -> a -> m) -> f a -> (f b,m)
   foldsr f g = foldo (flip mappend) (\pm cm m a -> (f pm cm m a, g pm a))
-
-  foldsr' :: Monoid m => (m -> m -> m -> a -> b) -> (m -> a -> m) -> f a -> (f b,m)
-  foldsr' f g = foldo (\x y -> let !z = mappend y x in z) (\pm cm m a -> (f pm cm m a, g pm a))
 
   foldel :: Monoid m => (m -> m -> m -> a -> b) -> (m -> a -> m) -> f a -> (f b,m)
   foldel f g = foldo mappend (\pm cm m a -> (f pm cm m a,g cm a))
 
-  foldel' :: Monoid m => (m -> m -> m -> a -> b) -> (m -> a -> m) -> f a -> (f b,m)
-  foldel' f g = foldo (\x y -> let !z = mappend x y in z) (\pm cm m a -> (f pm cm m a,g cm a))
-
   folder :: Monoid m => (m -> m -> m -> a -> b) -> (m -> a -> m) -> f a -> (f b,m)
   folder f g = foldo (flip mappend) (\pm cm m a -> (f pm cm m a,g cm a))
-
-  folder' :: Monoid m => (m -> m -> m -> a -> b) -> (m -> a -> m) -> f a -> (f b,m)
-  folder' f g = foldo (\x y -> let !z = mappend y x in z) (\pm cm m a -> (f pm cm m a,g cm a))
 
 instance MiddleOut [] where
   foldo c f la = (lb,final)
