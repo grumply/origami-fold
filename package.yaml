@@ -1,4 +1,4 @@
-name: middle-out
+name: origami-fold
 version: '0.1.0.0'
 author: S. M. Hickman
 maintainer: sean@grump.ly
@@ -10,4 +10,4 @@ library:
   source-dirs:
     - src
   exposed-modules:
-    - Data.MiddleOut
+    - Data.Origami

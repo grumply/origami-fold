@@ -1,2 +1,2 @@
-# middle-out
-Type class representing middle-out style monoidal mapping folds.
+# origami-fold
+Type class representing middle-out origami-style monoidal mapping folds.
