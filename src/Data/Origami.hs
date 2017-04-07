@@ -65,13 +65,13 @@ import GHC.Exts
 -- Exception: Prelude.undefined
 --
 -- > foldsr (\before after total a -> total) (\_ a -> a) [undefined,Any False,Any True]
--- ([True,True,True],True)
+-- ([Any True,Any True,Any True],Any True)
 --
--- > foldel (\before after total a -> total) (\_ a -> a) [undefined,Any False,Any True]
+-- > foldel (\before after total a -> total) (\_ a -> a) [Any False,Any True,undefined]
+-- ([Any True,Any True,Any True],Any True)
+--
+-- > folder (\before after total a -> total) (\_ a -> a) [Any False,Any True,undefined]
 -- Exception: Prelude.undefined
---
--- > folder (\before after total a -> total) (\_ a -> a) [undefined,Any False,Any True]
--- ([True,True,True],True)
 class Origami f where
   -- | Dragons!
   --
