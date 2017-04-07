@@ -13,11 +13,11 @@ import GHC.Exts
 
 -- | A generalized middle-out origami-like lazy monoidal mapping fold.
 --
--- To label each node in a tree with the total number of children in the tree
--- divided by the number of nodes traversed to arrive plus that node's count of
--- children plus one for the current node; a relative node weight:
--- > let one = Sum 1
--- > in foldsl (\ps cs t a -> (getSum (ps <> cs <> one) / getSum t,a)) (\_ _ -> one)
+-- To label each node in a tree with the number of nodes traversed to arrive
+-- at the current node plus the node's count of children plus one for the
+-- current node divided by the total number of nodes in the tree; a relative
+-- node weight:
+-- > foldsl (\ps cs t a -> (getSum (ps <> cs <> Sum 1) / getSum t,a)) (\_ _ -> Sum 1)
 --
 -- Given the tree:
 -- 1
@@ -39,7 +39,8 @@ import GHC.Exts
 --          +- 9
 --          |
 --          `- 10
--- We would get:
+--
+-- The above origami fold would produce:
 -- (1.0,1)
 -- |
 -- +- (0.3,2)
