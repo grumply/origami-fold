@@ -23,3 +23,47 @@ foldsl (\ancestors@as descendants@ds total@t element@e -> (getSum (as <> cs <> S
 ```
 
 For a tree, this can be seen as isolating the path to an element plus possible future paths and weighing that relative to the entire tree. This is a powerful traversal that operates in a single pass.
+
+```
+-- Given the tree:
+-- 1
+-- |
+-- +- 2
+-- |  |
+-- |  `- 3
+-- |
+-- +- 4
+-- |
+-- `- 5
+--    |
+--    `- 6
+--       |
+--       `- 7
+--          |
+--          +- 8
+--          |
+--          +- 9
+--          |
+--          `- 10
+--
+-- The above origami fold would produce:
+-- (1.0,1)
+-- |
+-- +- (0.3,2)
+-- |  |
+-- |  `- (0.3,3)
+-- |
+-- +- (0.2,4)
+-- |
+-- `- (0.7,5)
+--    |
+--    `- (0.7,6)
+--       |
+--       `- (0.7,7)
+--          |
+--          +- (0.5,8)
+--          |
+--          +- (0.5,9)
+--          |
+--          `- (0.5,10)
+```
