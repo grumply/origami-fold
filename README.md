@@ -45,3 +45,5 @@ For a tree, this can be seen as isolating the path to an element plus possible f
           |                             |
           `- 10                         +- (0.5,10)
 ```
+
+Note that the above fold doesn't utilize the previous monoidal value or the current element in the production `(\_ _ -> Sum 1)`. Origami folds are capable of generating their monoidal values relative to historical monoidal values and the current element before transformation, this production just happens to not do so.
