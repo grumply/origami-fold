@@ -22,7 +22,7 @@ As an example, to tag each element in a structure with the size of the path to t
 foldsl (\ancestors@as descendants@ds total@t element@e -> (getSum (as <> cs <> Sum 1) / getSum t,e)) (\_ _ -> Sum 1)
 ```
 
-For a tree, this can be seen as isolating the path to an element plus possible future paths and weighing that relative to the entire tree. This is a powerful traversal operating in a single pass.
+For a tree, this can be seen as isolating the path to an element plus possible future paths and weighing that relative to the entire tree. This is a powerful traversal operating in a single pass by trading time for space.
 
 ```
  1               ==>        (1.0,1)
