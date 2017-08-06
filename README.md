@@ -19,7 +19,7 @@ These methods are safe:
 As an example, to tag each element in a structure with the size of the path to that element plus the size of the substructure below it plus itself relative to the total number of elements in the structure.
 
 ```haskell
-foldsl (\ancestors@as descendants@ds total@t element@e -> (getSum (as <> cs <> Sum 1) / getSum t,e)) (\_ _ -> Sum 1)
+foldsl (\ancestors@as descendants@ds total@t current@c -> (getSum (as <> ds <> Sum 1) / getSum t,c)) (\_ _ -> Sum 1)
 ```
 
 For a tree, this can be seen as isolating the path to an element plus possible future paths and weighing that relative to the entire tree. This is a powerful traversal operating in a single pass by trading time for space.
