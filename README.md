@@ -6,7 +6,7 @@ Performs an analysis, monoidally, and transformation, top-down or bottom-up, in 
 
 For instance, this function can be used to calculate variance of a series and label each member of the series with its deviation in a single pass.
 
-While this function can be seen to traverse both top-down and bottom-up, to be productive, one approach must be chosen at the use site; choosing both top-down and bottom-up simultaneously would result in <<loop>>. There are derivative methods to prevent misuse:
+While this function can be seen to traverse both top-down and bottom-up, to be productive, one approach must be chosen at the use site; choosing both top-down and bottom-up simultaneously would result in `<<loop>>`. There are derivative methods to prevent misuse:
 
 These methods are safe:
 * foldsl; fold from the (s)tart/top and combine monoidal values from (l)eft-to-right
