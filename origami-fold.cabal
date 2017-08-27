@@ -1,0 +1,19 @@
+name:           origami-fold
+version:        0.1.0.0
+author:         S. M. Hickman
+maintainer:     sean@grump.ly
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+cabal-version:  >= 1.10
+
+library
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.8
+    , containers
+    , deepseq
+  exposed-modules:
+      Data.Origami
+  default-language: Haskell2010
