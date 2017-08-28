@@ -4,8 +4,11 @@ cache:
   directories:
   - "/nix"
 
-env:
-  matrix:
-    - COMPILER=ghc801
-
-script: travis_wait 30 nix-build --argstr compiler $COMPILER
+script:
+- |
+  nix-env -f "<nixpkgs>" -iA haskellPackages.cabal-install
+  nix-shell -E 'with import <nixpkgs> {}; haskell.packages.ghc821.ghcWithPackages (pkgs: [ ])'
+  cabal install deps/trivial/ . --dependencies-only
+  cabal configure --enable-tests
+  cabal install deps/trivial/ .
+  cabal test
