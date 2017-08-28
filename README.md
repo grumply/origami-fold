@@ -14,7 +14,7 @@ These methods (and their (M)onadFix implementations) are safe:
 * foldlr/M; fold from the start/top and combine monoidal values from right-to-left
 * foldrr/M; fold from the end/bottom and combine monoidal values from right-to-left
 
-Note that for lists and sequences `foldll` and `foldlr` coincide and `foldrl` and `foldrr` coincide. This is not the case for trees where `foldll` is preorder traversal, `foldlr` is reverse preorder traversal, `foldrl` is postorder traversal and `foldrr` is reverse postorder traversal. `foldo` for trees is thus a single-algorithm generalization of pre- and post- order traversals where evaluation order is selected by the choice of monoid or the monoid and the recursive monadic context. 
+The second (l|r) controls the evaluation of recursive substructures. For lists and sequences with substructure `foldll` and `foldlr` coincide and `foldrl` and `foldrr` coincide. This is not the case for trees where `foldll` is preorder traversal, `foldlr` is reverse preorder traversal, `foldrl` is postorder traversal and `foldrr` is reverse postorder traversal. `foldo` for trees is thus a single-algorithm generalization of pre- and post- order traversals where evaluation order is selected by the choice of monoid or the monoid and the recursive monadic context. 
 
 ### Example
 
