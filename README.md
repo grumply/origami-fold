@@ -1,49 +1,49 @@
 # origami-fold
 
-A type class representing middle-out origami-style monoidal mapping folds.
+A type class of pure and recursive monadic origami-like lazy monoidal mapping folds.
 
 Performs an analysis, monoidally, and transformation, top-down or bottom-up, in a single pass; traverses a structure to produce a monoidal result where the intermediate and final monoidal values can be used to transform the values of the structure. 
 
-For instance, this function can be used to calculate variance of a series and label each member of the series with its deviation in a single pass.
+For instance, `foldo` can be used to calculate variance of a series and label each member of the series with its deviation in a single pass.
 
-While this function can be seen to traverse both top-down and bottom-up, to be productive, one approach must be chosen at the use site; choosing both top-down and bottom-up simultaneously would result in `<<loop>>`. There are derivative methods to prevent misuse:
+While this function can be seen to traverse both top-down and bottom-up, to be productive, one approach must be chosen at the use site; choosing both top-down and bottom-up simultaneously would result in `<<loop>>`. There are derivative methods to prevent such misuse:
 
-These methods are safe:
-* foldsl; fold from the (s)tart/top and combine monoidal values from (l)eft-to-right
-* foldel; fold from the (e)nd/bottom and combine monoidal values from (l)eft-to-right
-* foldsr; fold from the (s)tart/top and combine monoidal values from (r)ight-to-left
-* folder; fold from the (e)nd/bottom and combine monoidal values from (r)ight-to-left
+These methods (and their (M)onadFix implementations) are safe:
+* foldll/M; fold from the (s)tart/top and combine monoidal values from (l)eft-to-right
+* foldrl/M; fold from the (e)nd/bottom and combine monoidal values from (l)eft-to-right
+* foldlr/M; fold from the (s)tart/top and combine monoidal values from (r)ight-to-left
+* foldrr/M; fold from the (e)nd/bottom and combine monoidal values from (r)ight-to-left
 
 ### Example
 
-As an example, to tag each element in a structure with the size of the path to that element plus the size of the substructure below it plus itself relative to the total number of elements in the structure.
+As an example, imagine walking a structure and labeling each element with the length of the path from the start to that element plus the count of elements after the current element in the structure plus one for the current element divided by the total number of elements in the structure - a sort of relative weight.
 
 ```haskell
-foldsl (\ancestors@as descendants@ds total@t current@c -> (getSum (as <> ds <> Sum 1) / getSum t,c)) (\_ _ -> Sum 1)
+foldll (\ancestors@as descendants@ds total@t current@c -> (getSum (as <> ds <> Sum 1) / getSum t)) (\_ _ -> Sum 1)
 ```
 
-For a tree, this can be seen as isolating the path to an element plus possible future paths and weighing that relative to the entire tree. This is a powerful traversal operating in a single pass by trading time for space.
+For a tree, this can be seen as isolating the path to an element plus possible future paths and weighing that relative to the entire tree. This is a powerful lazy traversal operating in a single pass.
 
 ```
- 1               ==>        (1.0,1)
+ 1               ==>        1.0
  |                          |
- +- 2                       +- (0.3,2)
+ +- 2                       +- 0.3
  |  |                       |   |
- |  `- 3                    |   `- (0.3,3)
+ |  `- 3                    |   `- 0.3
  |                          |
- +- 4                       +- (0.2,4)
+ +- 4                       +- 0.2
  |                          |
- `- 5                       `- (0.7,5)
+ `- 5                       `- 0.7
     |                           |
-    `- 6                        `- (0.7,6)
+    `- 6                        `- 0.7
        |                            |
-       `- 7                         `- (0.7,7)
+       `- 7                         `- 0.7
           |                             |
-          +- 8                          +- (0.5,8)
+          +- 8                          +- 0.5
           |                             |
-          +- 9                          +- (0.5,9)
+          +- 9                          +- 0.5
           |                             |
-          `- 10                         +- (0.5,10)
+          `- 10                         +- 0.5
 ```
 
 Note that the above fold doesn't utilize the previous monoidal value or the current element in the production `(\_ _ -> Sum 1)`. Origami folds are capable of generating their monoidal values relative to historical monoidal values and the current element before transformation, this production just happens to not do so.
