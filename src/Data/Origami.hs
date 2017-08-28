@@ -16,6 +16,8 @@ import GHC.Exts
 
 import Debug.Trace
 
+import Control.DeepSeq
+
 -- | A generalized middle-out origami-like lazy monoidal mapping fold.
 --
 -- To label each node in a tree with the number of nodes traversed to arrive
@@ -141,8 +143,8 @@ class Origami f where
   foldoM :: (Monoid m, MonadFix c) => m -> (m -> m -> m) -> (m -> m -> m -> a -> c (b,m)) -> f a -> c (f b,m)
 
   -- | foldsl folds from the top/start and mappends from left-to-right
-  foldsl :: Monoid m => (m -> m -> m -> a -> b) -> (m -> a -> m) -> f a -> (f b,m)
-  foldsl f g = foldo mempty mappend (\pm cm m a -> (f pm cm m a, g pm a))
+  foldsl :: Monoid m => (m -> m -> m -> a -> (b,m)) -> f a -> (f b,m)
+  -- foldsl f g = foldo mempty mappend (\pm cm m a -> (f pm cm m a, g pm a))
 
   -- | foldslM folds from the top/start and mappends from left-to-right monadically
   foldslM :: (Monoid m, MonadFix c) => (m -> m -> m -> a -> c b) -> (m -> a -> c m) -> f a -> c (f b,m)
@@ -155,8 +157,8 @@ class Origami f where
       )
 
   -- | foldsr folds from the top/start and mappends from right-to-left
-  foldsr :: Monoid m => (m -> m -> m -> a -> b) -> (m -> a -> m) -> f a -> (f b,m)
-  foldsr f g = foldo mempty (flip mappend) (\pm cm m a -> (f pm cm m a, g pm a))
+  foldsr :: Monoid m => (m -> m -> m -> a -> (b,m)) -> f a -> (f b,m)
+  -- foldsr f g = foldo mempty (flip mappend) (\pm cm m a -> (f pm cm m a, g pm a))
 
   -- | foldsrM folds from the top/start and mappends from right-to-left monadically
   foldsrM :: (Monoid m, MonadFix c) => (m -> m -> m -> a -> c b) -> (m -> a -> c m) -> f a -> c (f b,m)
@@ -218,17 +220,33 @@ instance Origami [] where
     return (lb,final)
   {-# INLINE foldoM #-}
 
-test =
-  let tree = Node 1 [ Node 2 [ Node 3 [], Node 4 []], Node 5 [Node 6 [], Node 7 []]]
-      (_,x1) = foldsl (\as ds t c -> traceShow c (Sum 1)) (\_ c -> traceShow c $ Sum 1) tree
+testList b =
+  let as = [1..5]
+      i = Sum (1 :: Int)
+      (xs1,x1) = foldsl (\as ds t c -> traceShow c (i,i)) as
       b1 = trace "\nsl\n" 0
-      (_,x2) = foldsr (\as ds t c -> traceShow c (Sum 1)) (\_ c -> traceShow c $ Sum 1) tree
+      (xs2,x2) = foldsr (\as ds t c -> traceShow c (i,i)) as
+      b2 = trace "\nsr\n" 0
+      (xs3,x3) = foldel (\as ds t c -> traceShow c i) (\_ c -> traceShow c $ Sum 1) as
+      b3 = trace "\nel\n" 0
+      (xs4,x4) = folder (\as ds t c -> traceShow c i) (\_ c -> traceShow c $ Sum 1) as
+      b4 = trace "\ner\n" 0
+  in if b
+       then b1 `seq` x1 `seq` b2 `seq` x2 `seq` b3 `seq` x3 `seq` b4 `seq` x4 `seq` x1 + x2 + x3 + x4
+       else b1 `seq` xs1 `deepseq` b2 `seq` xs2 `deepseq` b3 `seq` xs3 `deepseq` b4 `seq` xs4 `deepseq` 0
+
+testTree =
+  let tree = Node 1 [ Node 2 [ Node 3 [], Node 4 []], Node 5 [Node 6 [], Node 7 []]]
+      t = trace (drawTree $ fmap show tree) 0
+      (_,x1) = foldsl (\as ds t c -> traceShow c (Sum 1,Sum 1)) tree
+      b1 = trace "\nsl\n" 0
+      (_,x2) = foldsr (\as ds t c -> traceShow c (Sum 1,Sum 1)) tree
       b2 = trace "\nsr\n" 0
       (_,x3) = foldel (\as ds t c -> traceShow c (Sum 1)) (\_ c -> traceShow c $ Sum 1) tree
       b3 = trace "\nel\n" 0
       (_,x4) = folder (\as ds t c -> traceShow c (Sum 1)) (\_ c -> traceShow c $ Sum 1) tree
       b4 = trace "\ner\n" 0
-  in b1 `seq` x1 `seq` b2 `seq` x2 `seq` b3 `seq` x3 `seq` b4 `seq` x4 `seq` x1 + x2 + x3 + x4
+  in t `seq` b1 `seq` x1 `seq` b2 `seq` x2 `seq` b3 `seq` x3 `seq` b4 `seq` x4 `seq` x1 + x2 + x3 + x4
 
 instance Origami Tree where
   foldo m0 c f ta = (tb,final)
@@ -237,7 +255,7 @@ instance Origami Tree where
         where
           go as_st (Node rt frst) = (node,m)
             where
-              ~(node,m) = (Node rt' frst',c st frst_st)
+              ~(node,m) = (Node rt' frst',c frst_st st)
               ~(rt',st) = f as_st frst_st final rt
               ~(frst',frst_st) = go' as_st frst
                 where
@@ -246,15 +264,26 @@ instance Origami Tree where
                     where
                       ~(b,st) = go as_st a
                       ~(bs,bs_st) = go' as_st as
-                -- foldo as_st c (\_ _ _ -> foldo as_st c f) frst
-                -- let ~(bs,ms) = unzip $ map (go as_st) frst
-                -- in (bs,foldr c mempty ms)
-                -- let f = go (c as_st st)
-                  -- foldl (\ ~(bs,m) t ->
-                  --          let ~(b,m') = go (c as_st st) t
-                  --          in (b:bs,c m m')
-                  --        ) ([],mempty) frst
   {-# INLINE foldo #-}
+
+  foldsl = foldo mempty mappend
+
+  foldsr f ta = (tb,final)
+    where
+      ~(tb,final) = go mempty ta
+        where
+          go as_st (Node rt frst) = (node,m)
+            where
+              ~(node,m) = (Node rt' frst',flip (<>) frst_st st)
+              ~(rt',st) = f as_st frst_st final rt
+              ~(frst',frst_st) = go' as_st frst
+                where
+                  go' as_st []      = ([],as_st)
+                  go' as_st ~(a:as) = (b:bs,flip (<>) st bs_st)
+                    where
+                      ~(b,st) = go as_st a
+                      ~(bs,bs_st) = go' as_st as
+  {-# INLINE foldsr #-}
 
   foldoM m c f ta = mdo
     let go as_st (Node rt frst) = mdo
