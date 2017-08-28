@@ -6,25 +6,25 @@ module Data.Origami where
 
 import Control.Monad.Fix
 
-import Data.Bifunctor
 import Data.Monoid
 
 import Data.Tree
-import Data.Sequence hiding (fromList,toList)
+import Data.Sequence
 
-import GHC.Exts
-
-import Debug.Trace
-
-import Control.DeepSeq
-
--- | A generalized middle-out origami-like lazy monoidal mapping fold.
+-- | A generalized origami-like lazy monoidal mapping fold.
 --
--- To label each node in a tree with the number of nodes traversed to arrive
--- at the current node plus the node's count of children plus one for the
--- current node divided by the total number of nodes in the tree; a relative
--- node weight:
--- > foldsl (\ps cs t a -> (getSum (ps <> cs <> Sum 1) / getSum t,a)) (\_ _ -> Sum 1)
+-- As an example, imagine walking an m-ary tree and labeling each node with the
+-- length of the path from the root to that node plus its count of children
+-- plus one for the current node and then dividing that by the total number
+-- of nodes in the tree - a sort of relative weight.
+--
+-- > foldll
+-- >   (\as@ancestors cs@children t@total a ->
+-- >     ( getSum (as <> cs <> Sum 1) / getSum t
+-- >     , a -- leave the element unmodified
+-- >     )
+-- >   )
+-- >   (\_ _ -> Sum 1) -- one for each node
 --
 -- Given the tree:
 -- 1
@@ -68,17 +68,20 @@ import Control.DeepSeq
 --          |
 --          `- (0.5,10)
 --
--- > foldsl (\before after total a -> total) (\_ a -> a) [undefined,Any False,Any True]
+-- Laziness:
+--
+-- > foldll (\before after total a -> total) (\_ a -> a) [undefined,Any False,Any True]
 -- Exception: Prelude.undefined
 --
--- > foldsr (\before after total a -> total) (\_ a -> a) [undefined,Any False,Any True]
--- ([Any True,Any True,Any True],Any True)
---
--- > foldel (\before after total a -> total) (\_ a -> a) [Any False,Any True,undefined]
--- ([Any True,Any True,Any True],Any True)
---
--- > folder (\before after total a -> total) (\_ a -> a) [Any False,Any True,undefined]
+-- > Foldlr (\before after total a -> total) (\_ a -> a) [undefined,Any False,Any True]
 -- Exception: Prelude.undefined
+--
+-- > foldrl (\before after total a -> total) (\_ a -> a) [Any False,Any True,undefined]
+-- ([Any True,Any True,Any True],Any True)
+--
+-- > foldrr (\before after total a -> total) (\_ a -> a) [Any False,Any True,undefined]
+-- ([Any True,Any True,Any True],Any True)
+
 class Origami f where
   -- | Dragons!
   --
@@ -86,9 +89,13 @@ class Origami f where
   -- and end-to-beginning folding and can modify any element in the structure
   -- as if it has already done both. It does, of course, have limitations.
   --
-  -- Given: foldo c f xs
-  --        c :: m -> m -> m -- mappend or flip mappend, generally
+  -- Given: foldo _0 c c' f xs
+  --        c,c' :: m -> m -> m -- mappend or flip mappend, generally
   --        f :: m -> m -> m -> a -> (b,m)
+  --
+  -- Note that there are two `c`s, one for the spine and one
+  -- for nested structures. For linear structures, like lists,
+  -- only the first is used.
   --
   -- There are two rules:
   --   1. `f` may choose to use one of the first two 'm's to produce the result
@@ -102,16 +109,35 @@ class Origami f where
   -- 'm' will <<loop>>.
   --
   -- This method need only traverse the structure once and should be, in general,
-  -- linear.
+  -- linear. However, this single traversal could create a shadow
+  -- of thunks of equal or greater weight than the structure being
+  -- traversed.
   --
   -- The first 'm' represents the `mconcat` of the previous monoidal fold results.
   -- The second 'm' represents the `mconcat` of the future monoidal fold results.
-  -- The third 'm' represents the final monoidal fold result for the entire structure.
+  -- The third 'm' represents the final monoidal fold result for the entire structure; previous m <> current m <> future m.
   --
-  -- For safety, use the derived methods:
-  --   pure: foldsl, foldsr, foldel, folder
-  --   monadic: foldslM, foldsrM, foldelM, folderM
-  foldo :: Monoid m => m -> (m -> m -> m) -> (m -> m -> m -> a -> (b,m)) -> f a -> (f b,m)
+  -- For safety, these methods should keep you from looping:
+  --   pure: foldll, foldlr, foldrl, foldrr
+  --   monadic: foldllM, foldlrM, foldrlM, foldrrM
+  --
+  foldo :: Monoid m => m -> (m -> m -> m) -> (m -> m -> m) -> (m -> m -> m -> a -> (b,m)) -> f a -> (f b,m)
+
+  -- | foldll folds from the top/start and mappends from left-to-right
+  foldll :: Monoid m => (m -> m -> m -> a -> b) -> (m -> a -> m) -> f a -> (f b,m)
+  foldll f g = foldo mempty mappend mappend (\as ds t c -> (f as ds t c,g as c))
+
+  -- | foldlr folds from the top/start and mappends from right-to-left
+  foldlr :: Monoid m => (m -> m -> m -> a -> b) -> (m -> a -> m) -> f a -> (f b,m)
+  foldlr f g = foldo mempty mappend (flip mappend) (\as ds t c -> (f as ds t c,g as c))
+
+  -- | foldrl folds from the bottom/end and mappends from left-to-right
+  foldrl :: Monoid m => (m -> m -> m -> a -> b) -> (m -> a -> m) -> f a -> (f b,m)
+  foldrl f g = foldo mempty (flip mappend) mappend (\as ds t c -> (f as ds t c,g ds c))
+
+  -- | foldrr folds from the bottom/end and mappends from right-to-left
+  foldrr :: Monoid m => (m -> m -> m -> a -> b) -> (m -> a -> m) -> f a -> (f b,m)
+  foldrr f g = foldo mempty (flip mappend) (flip mappend) (\as ds t c -> (f as ds t c,g ds c))
 
   -- | Dragons!
   --
@@ -123,7 +149,7 @@ class Origami f where
   --
   -- And the following traversal:
   --
-  -- > foldoM mappend (\as ds t c -> traceShow c (return (getSum t,Sum 1))) t
+  -- > foldoM mempty mappend mappend (\as ds t c -> traceShow c (return (getSum t,Sum 1))) t
   --
   -- Note the different print orders for Identity and IO:
   --
@@ -134,170 +160,99 @@ class Origami f where
   -- > 'c'
   --
   -- Identity:
-  -- > 'a'
   -- > 'c'
   -- > 'd'
   -- > 'b'
+  -- > 'a'
   --
-  -- Note that 
-  foldoM :: (Monoid m, MonadFix c) => m -> (m -> m -> m) -> (m -> m -> m -> a -> c (b,m)) -> f a -> c (f b,m)
+  foldoM :: (Monoid m, MonadFix c) => m -> (m -> m -> m) -> (m -> m -> m) -> (m -> m -> m -> a -> c (b,m)) -> f a -> c (f b,m)
 
-  -- | foldsl folds from the top/start and mappends from left-to-right
-  foldsl :: Monoid m => (m -> m -> m -> a -> (b,m)) -> f a -> (f b,m)
-  -- foldsl f g = foldo mempty mappend (\pm cm m a -> (f pm cm m a, g pm a))
+  -- | foldllM folds from the top/start and mappends from left-to-right monadically
+  foldllM :: (Monoid m, MonadFix c) => (m -> m -> m -> a -> c b) -> (m -> a -> c m) -> f a -> c (f b,m)
+  foldllM f g = foldoM mempty mappend mappend $ \as ds t c -> mdo
+    b <- f as ds t c
+    m <- g as c
+    return (b,m)
 
-  -- | foldslM folds from the top/start and mappends from left-to-right monadically
-  foldslM :: (Monoid m, MonadFix c) => (m -> m -> m -> a -> c b) -> (m -> a -> c m) -> f a -> c (f b,m)
-  foldslM f g =
-    foldoM mempty mappend
-      (\pm cm m a -> mdo
-          m' <- g pm a
-          b  <- f pm cm m a
-          return (b,m')
-      )
+  -- | foldlrM folds from the top/start and mappends from right-to-left monadically
+  foldlrM :: (Monoid m, MonadFix c) => (m -> m -> m -> a -> c b) -> (m -> a -> c m) -> f a -> c (f b,m)
+  foldlrM f g = foldoM mempty mappend (flip mappend) $ \as ds t c -> mdo
+    b <- f as ds t c
+    m <- g as c
+    return (b,m)
 
-  -- | foldsr folds from the top/start and mappends from right-to-left
-  foldsr :: Monoid m => (m -> m -> m -> a -> (b,m)) -> f a -> (f b,m)
-  -- foldsr f g = foldo mempty (flip mappend) (\pm cm m a -> (f pm cm m a, g pm a))
+  -- | foldrlM folds from the bottom/end and mappends from left-to-right monadically
+  foldrlM :: (Monoid m, MonadFix c) => (m -> m -> m -> a -> c b) -> (m -> a -> c m) -> f a -> c (f b,m)
+  foldrlM f g = foldoM mempty (flip mappend) mappend $ \as ds t c -> mdo
+    b <- f as ds t c
+    m <- g ds c
+    return (b,m)
 
-  -- | foldsrM folds from the top/start and mappends from right-to-left monadically
-  foldsrM :: (Monoid m, MonadFix c) => (m -> m -> m -> a -> c b) -> (m -> a -> c m) -> f a -> c (f b,m)
-  foldsrM f g =
-    foldoM mempty (flip mappend)
-      (\pm cm m a -> mdo
-          m' <- g pm a
-          b  <- f pm cm m a
-          return (b,m')
-      )
-
-  -- | foldel folds from the bottom/end and mappends from left-to-right
-  foldel :: Monoid m => (m -> m -> m -> a -> b) -> (m -> a -> m) -> f a -> (f b,m)
-  foldel f g = foldo mempty mappend (\pm cm m a -> (f pm cm m a,g cm a))
-
-  -- | foldel folds from the bottom/end and mappends from left-to-right monadically
-  foldelM :: (Monoid m, MonadFix c) => (m -> m -> m -> a -> c b) -> (m -> a -> c m) -> f a -> c (f b,m)
-  foldelM f g =
-    foldoM mempty mappend
-      (\pm cm m a -> mdo
-          m' <- g cm a
-          b  <- f pm cm m a
-          return (b,m')
-      )
-
-  -- | folder folds from the bottom/end and mappends from right-to-left
-  folder :: Monoid m => (m -> m -> m -> a -> b) -> (m -> a -> m) -> f a -> (f b,m)
-  folder f g = foldo mempty (flip mappend) (\pm cm m a -> (f pm cm m a,g cm a))
-
-  -- | folder folds from the bottom/end and mappends from right-to-left monadically
-  folderM :: (Monoid m, MonadFix c) => (m -> m -> m -> a -> c b) -> (m -> a -> c m) -> f a -> c (f b,m)
-  folderM f g =
-    foldoM mempty (flip mappend)
-      (\pm cm m a -> mdo
-          m' <- g cm a
-          b  <- f pm cm m a
-          return (b,m')
-      )
+  -- | foldrrM folds from the bottom/end and mappends from right-to-left monadically
+  foldrrM :: (Monoid m, MonadFix c) => (m -> m -> m -> a -> c b) -> (m -> a -> c m) -> f a -> c (f b,m)
+  foldrrM f g = foldoM mempty (flip mappend) (flip mappend) $ \as ds t c -> mdo
+    b <- f as ds t c
+    m <- g ds c
+    return (b,m)
 
 instance Origami [] where
-  foldo m0 c f la = (lb,final)
+  foldo m0 c1 c2 f la = (lb,final)
     where
       ~(lb,final) = go m0 la
         where
           go as_st []      = ([],as_st)
-          go as_st ~(a:as) = (b:bs,c bs_st st)
+          go as_st ~(a:as) = (b:bs,bs_st)
             where
               ~(b,st) = f as_st bs_st final a
-              ~(bs,bs_st) = go as_st as
+              ~(bs,bs_st) = go (c1 as_st st) as
   {-# INLINE foldo #-}
 
-  foldoM m c f la = mdo
+  foldoM m c1 _ f la = mdo
     let go as_st [] = return ([],as_st)
         go as_st ~(a:as) = mdo
           ~(b,st) <- f as_st bs_st final a
           ~(bs,bs_st) <- go as_st as
-          return (b:bs,c bs_st st)
+          return (b:bs,c1 st bs_st)
     ~(lb,final) <- go m la
     return (lb,final)
   {-# INLINE foldoM #-}
 
-testList b =
-  let as = [1..5]
-      i = Sum (1 :: Int)
-      (xs1,x1) = foldsl (\as ds t c -> traceShow c (i,i)) as
-      b1 = trace "\nsl\n" 0
-      (xs2,x2) = foldsr (\as ds t c -> traceShow c (i,i)) as
-      b2 = trace "\nsr\n" 0
-      (xs3,x3) = foldel (\as ds t c -> traceShow c i) (\_ c -> traceShow c $ Sum 1) as
-      b3 = trace "\nel\n" 0
-      (xs4,x4) = folder (\as ds t c -> traceShow c i) (\_ c -> traceShow c $ Sum 1) as
-      b4 = trace "\ner\n" 0
-  in if b
-       then b1 `seq` x1 `seq` b2 `seq` x2 `seq` b3 `seq` x3 `seq` b4 `seq` x4 `seq` x1 + x2 + x3 + x4
-       else b1 `seq` xs1 `deepseq` b2 `seq` xs2 `deepseq` b3 `seq` xs3 `deepseq` b4 `seq` xs4 `deepseq` 0
-
-testTree =
-  let tree = Node 1 [ Node 2 [ Node 3 [], Node 4 []], Node 5 [Node 6 [], Node 7 []]]
-      t = trace (drawTree $ fmap show tree) 0
-      (_,x1) = foldsl (\as ds t c -> traceShow c (Sum 1,Sum 1)) tree
-      b1 = trace "\nsl\n" 0
-      (_,x2) = foldsr (\as ds t c -> traceShow c (Sum 1,Sum 1)) tree
-      b2 = trace "\nsr\n" 0
-      (_,x3) = foldel (\as ds t c -> traceShow c (Sum 1)) (\_ c -> traceShow c $ Sum 1) tree
-      b3 = trace "\nel\n" 0
-      (_,x4) = folder (\as ds t c -> traceShow c (Sum 1)) (\_ c -> traceShow c $ Sum 1) tree
-      b4 = trace "\ner\n" 0
-  in t `seq` b1 `seq` x1 `seq` b2 `seq` x2 `seq` b3 `seq` x3 `seq` b4 `seq` x4 `seq` x1 + x2 + x3 + x4
-
 instance Origami Tree where
-  foldo m0 c f ta = (tb,final)
+  foldo m0 c1 c2 f ta = (tb,final)
     where
       ~(tb,final) = go m0 ta
         where
-          go as_st (Node rt frst) = (node,m)
+          go as_st (Node rt frst) = (Node rt' frst',c1 st frst_st)
             where
-              ~(node,m) = (Node rt' frst',c frst_st st)
-              ~(rt',st) = f as_st frst_st final rt
-              ~(frst',frst_st) = go' as_st frst
+              ~(rt',st)        = f as_st frst_st final rt
+              ~(frst',frst_st) = go' (c1 st as_st) frst
                 where
-                  go' as_st []      = ([],as_st)
-                  go' as_st ~(a:as) = (b:bs,c bs_st st)
+                  go' _     []      = ([],mempty)
+                  go' as_st ~(a:as) = (b:bs,c2 st bs_st)
                     where
                       ~(b,st) = go as_st a
                       ~(bs,bs_st) = go' as_st as
   {-# INLINE foldo #-}
 
-  foldsl = foldo mempty mappend
+  foldoM m0 c1 c2 f ta = mdo
 
-  foldsr f ta = (tb,final)
-    where
-      ~(tb,final) = go mempty ta
-        where
-          go as_st (Node rt frst) = (node,m)
-            where
-              ~(node,m) = (Node rt' frst',flip (<>) frst_st st)
-              ~(rt',st) = f as_st frst_st final rt
-              ~(frst',frst_st) = go' as_st frst
-                where
-                  go' as_st []      = ([],as_st)
-                  go' as_st ~(a:as) = (b:bs,flip (<>) st bs_st)
-                    where
-                      ~(b,st) = go as_st a
-                      ~(bs,bs_st) = go' as_st as
-  {-# INLINE foldsr #-}
-
-  foldoM m c f ta = mdo
     let go as_st (Node rt frst) = mdo
-          ~(rt',st)   <- f as_st frst_st final rt
-          -- ~(frst',ms) <- fmap unzip $ mapM (go (c as_st st)) frst
-          ~(frst',frst_st) <- foldoM as_st c (\ps _ _ -> foldoM ps c f) frst
-          -- let frst_st = foldr c mempty ms
-          return (Node rt' frst',c st frst_st)
-    ~(tb,final) <- go m ta
+          ~(rt',st)        <- f as_st frst_st final rt
+          ~(frst',frst_st) <- go' (c1 st as_st) frst
+          return (Node rt' frst',c1 st frst_st)
+
+        go' _ [] = return ([],mempty)
+        go' as_st ~(a:as) = mdo
+          ~(b,st) <- go as_st a
+          ~(bs,bs_st) <- go' as_st as
+          return (b:bs,c2 st bs_st)
+
+    ~(tb,final) <- go m0 ta
     return (tb,final)
   {-# INLINE foldoM #-}
 
 instance Origami Seq where
-  foldo m0 c f sa = (sb,final)
+  foldo m0 c1 _ f sa = (sb,final)
     where
       ~(sb,final) = go m0 sa
         where
@@ -307,20 +262,20 @@ instance Origami Seq where
               ~(a :< as) ->
                 let
                   ~(b,st) = f as_st bs_st final a
-                  ~(bs,bs_st) = go (c as_st st) as
+                  ~(bs,bs_st) = go as_st as
                 in
-                  (b <| bs,c st bs_st)
+                  (b <| bs,c1 st bs_st)
   {-# INLINE foldo #-}
 
-  foldoM m c f sa = mdo
+  foldoM m0 c1 _ f sa = mdo
     let go as_st sa =
           case viewl sa of
-            EmptyL  -> return (mempty,mempty)
+            EmptyL  -> return (mempty,as_st)
             ~(a :< as) -> mdo
               ~(b,st) <- f as_st bs_st final a
-              ~(bs,bs_st) <- go (c as_st st) as
-              return (b <| bs, c st bs_st)
-    ~(sb,final) <- go m sa
+              ~(bs,bs_st) <- go as_st as
+              return (b <| bs,c1 st bs_st)
+    ~(sb,final) <- go m0 sa
     return (sb,final)
   {-# INLINE foldoM #-}
   -- TODO: implement more efficient methods for Seq that
