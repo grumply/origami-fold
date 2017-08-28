@@ -1,5 +1,7 @@
 # origami-fold
 
+[![Build Status](https://travis-ci.org/grumply/origami-fold.svg?branch=master)](https://travis-ci.org/grumply/origami-fold)
+
 A type class of pure and recursive monadic origami-like lazy monoidal mapping folds.
 
 Performs an analysis, monoidally, and transformation, top-down or bottom-up, in a single pass; traverses a structure to produce a monoidal result where the intermediate and final monoidal values can be used to transform the values of the structure. Evaluation demand is driven by the choice of monoid. Evaluation order is lazy in pure cases or driven by the laziness of the underlying recursive monad in monadic cases.
