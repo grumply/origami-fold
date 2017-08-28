@@ -7,4 +7,4 @@ cache:
 script:
 - |
   nix-env -f "<nixpkgs>" -iA haskellPackages.cabal-install
-  nix-shell -E 'with import <nixpkgs> {}; haskell.packages.ghc821.ghcWithPackages (pkgs: [ ])' --command 'cabal install deps/trivial/ . --dependencies-only && cabal configure --enable-tests && cabal install deps/trivial/ . && cabal test'
+  nix-shell -E 'with import <nixpkgs> {}; haskell.packages.ghc821.ghcWithPackages (pkgs: [ ])' --command 'cabal update && cabal install deps/trivial/ . --dependencies-only && cabal configure --enable-tests && cabal install deps/trivial/ . && cabal test'
