@@ -27,60 +27,62 @@ import Data.Sequence
 -- >   (\_ _ -> Sum 1) -- one for each node
 --
 -- Given the tree:
--- 1
--- |
--- +- 2
--- |  |
--- |  `- 3
--- |
--- +- 4
--- |
--- `- 5
---    |
---    `- 6
---       |
---       `- 7
---          |
---          +- 8
---          |
---          +- 9
---          |
---          `- 10
+--
+-- > 1
+-- > |
+-- > +- 2
+-- > |  |
+-- > |  `- 3
+-- > |
+-- > +- 4
+-- > |
+-- > `- 5
+-- >    |
+-- >    `- 6
+-- >       |
+-- >       `- 7
+-- >          |
+-- >          +- 8
+-- >          |
+-- >          +- 9
+-- >          |
+-- >          `- 10
 --
 -- The above origami fold would produce:
--- (1.0,1)
--- |
--- +- (0.3,2)
--- |  |
--- |  `- (0.3,3)
--- |
--- +- (0.2,4)
--- |
--- `- (0.7,5)
---    |
---    `- (0.7,6)
---       |
---       `- (0.7,7)
---          |
---          +- (0.5,8)
---          |
---          +- (0.5,9)
---          |
---          `- (0.5,10)
+--
+-- > (1.0,1)
+-- > |
+-- > +- (0.3,2)
+-- > |  |
+-- > |  `- (0.3,3)
+-- > |
+-- > +- (0.2,4)
+-- > |
+-- > `- (0.7,5)
+-- >    |
+-- >    `- (0.7,6)
+-- >       |
+-- >       `- (0.7,7)
+-- >          |
+-- >          +- (0.5,8)
+-- >          |
+-- >          +- (0.5,9)
+-- >          |
+-- >          `- (0.5,10)
 --
 -- Laziness:
 --
 -- > foldll (\before after total a -> total) (\_ a -> a) [undefined,Any False,Any True]
--- Exception: Prelude.undefined
+-- > Exception: Prelude.undefined
 --
 -- > Foldlr (\before after total a -> total) (\_ a -> a) [undefined,Any False,Any True]
--- Exception: Prelude.undefined
+-- > Exception: Prelude.undefined
 --
 -- > foldrl (\before after total a -> total) (\_ a -> a) [Any False,Any True,undefined]
--- ([Any True,Any True,Any True],Any True)
+-- > ([Any True,Any True,Any True],Any True)
 --
 -- > foldrr (\before after total a -> total) (\_ a -> a) [Any False,Any True,undefined]
--- ([Any True,Any True,Any True],Any True)
+-- > ([Any True,Any True,Any True],Any True)
 
 class Origami f where
   -- | Dragons!
@@ -90,8 +92,9 @@ class Origami f where
   -- as if it has already done both. It does, of course, have limitations.
   --
   -- Given: foldo _0 c c' f xs
-  --        c,c' :: m -> m -> m -- mappend or flip mappend, generally
-  --        f :: m -> m -> m -> a -> (b,m)
+  --
+  --        > c,c' :: m -> m -> m -- mappend or flip mappend, generally
+  --        > f :: m -> m -> m -> a -> (b,m)
   --
   -- Note that there are two `c`s, one for the spine and one
   -- for nested structures. For linear structures, like lists,
@@ -158,12 +161,14 @@ class Origami f where
   -- Note the different print orders for Identity and IO:
   --
   -- IO:
+  --
   -- > 'a'
   -- > 'b'
   -- > 'd'
   -- > 'c'
   --
   -- Identity:
+  --
   -- > 'c'
   -- > 'd'
   -- > 'b'

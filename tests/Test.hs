@@ -1,10 +1,20 @@
-module Test where
-
-import Debug.Trace
-
-import Control.DeepSeq
+module Main where
 
 import Data.Origami
+
+import Control.DeepSeq
+import Control.Exception
+import Control.Monad
+import Debug.Trace
+import Data.Monoid
+
+import qualified Data.Sequence as Seq
+import Data.Tree
+
+main = void $ evaluate $ force $ do
+  b <- [True,False]
+  t <- [testList,testTree,testSeq]
+  return (t b)
 
 testList b =
   let as = [1..5]

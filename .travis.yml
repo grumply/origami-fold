@@ -1,0 +1,11 @@
+language: nix
+
+cache:
+  directories:
+  - "/nix"
+
+env:
+  matrix:
+    - COMPILER=ghc801
+
+script: travis_wait 30 nix-build --argstr compiler $COMPILER

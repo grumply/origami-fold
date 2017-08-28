@@ -8,6 +8,9 @@ let
           "${compiler}" = pkgs.haskell.packages."${compiler}".override {
             overrides = new: old: rec {
 
+              trivial =
+                new.callPackage ./deps/trivial/trivial.nix { };
+
               origami-fold =
                 new.callPackage ./origami-fold.nix { };
 
@@ -22,5 +25,6 @@ let
 
 in
   { origami-fold = pkgs.haskell.packages.${compiler}.origami-fold;
+    trivial = pkgs.haskell.packages.${compiler}.trivial;
   }
 
