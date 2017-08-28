@@ -124,18 +124,22 @@ class Origami f where
   foldo :: Monoid m => m -> (m -> m -> m) -> (m -> m -> m) -> (m -> m -> m -> a -> (b,m)) -> f a -> (f b,m)
 
   -- | foldll folds from the top/start and mappends from left-to-right
+  {-# INLINE foldll #-}
   foldll :: Monoid m => (m -> m -> m -> a -> b) -> (m -> a -> m) -> f a -> (f b,m)
   foldll f g = foldo mempty mappend mappend (\as ds t c -> (f as ds t c,g as c))
 
   -- | foldlr folds from the top/start and mappends from right-to-left
+  {-# INLINE foldlr #-}
   foldlr :: Monoid m => (m -> m -> m -> a -> b) -> (m -> a -> m) -> f a -> (f b,m)
   foldlr f g = foldo mempty mappend (flip mappend) (\as ds t c -> (f as ds t c,g as c))
 
   -- | foldrl folds from the bottom/end and mappends from left-to-right
+  {-# INLINE foldrl #-}
   foldrl :: Monoid m => (m -> m -> m -> a -> b) -> (m -> a -> m) -> f a -> (f b,m)
   foldrl f g = foldo mempty (flip mappend) mappend (\as ds t c -> (f as ds t c,g ds c))
 
   -- | foldrr folds from the bottom/end and mappends from right-to-left
+  {-# INLINE foldrr #-}
   foldrr :: Monoid m => (m -> m -> m -> a -> b) -> (m -> a -> m) -> f a -> (f b,m)
   foldrr f g = foldo mempty (flip mappend) (flip mappend) (\as ds t c -> (f as ds t c,g ds c))
 
@@ -168,6 +172,7 @@ class Origami f where
   foldoM :: (Monoid m, MonadFix c) => m -> (m -> m -> m) -> (m -> m -> m) -> (m -> m -> m -> a -> c (b,m)) -> f a -> c (f b,m)
 
   -- | foldllM folds from the top/start and mappends from left-to-right monadically
+  {-# INLINE foldllM #-}
   foldllM :: (Monoid m, MonadFix c) => (m -> m -> m -> a -> c b) -> (m -> a -> c m) -> f a -> c (f b,m)
   foldllM f g = foldoM mempty mappend mappend $ \as ds t c -> mdo
     b <- f as ds t c
@@ -175,6 +180,7 @@ class Origami f where
     return (b,m)
 
   -- | foldlrM folds from the top/start and mappends from right-to-left monadically
+  {-# INLINE foldlrM #-}
   foldlrM :: (Monoid m, MonadFix c) => (m -> m -> m -> a -> c b) -> (m -> a -> c m) -> f a -> c (f b,m)
   foldlrM f g = foldoM mempty mappend (flip mappend) $ \as ds t c -> mdo
     b <- f as ds t c
@@ -182,6 +188,7 @@ class Origami f where
     return (b,m)
 
   -- | foldrlM folds from the bottom/end and mappends from left-to-right monadically
+  {-# INLINE foldrlM #-}
   foldrlM :: (Monoid m, MonadFix c) => (m -> m -> m -> a -> c b) -> (m -> a -> c m) -> f a -> c (f b,m)
   foldrlM f g = foldoM mempty (flip mappend) mappend $ \as ds t c -> mdo
     b <- f as ds t c
@@ -189,6 +196,7 @@ class Origami f where
     return (b,m)
 
   -- | foldrrM folds from the bottom/end and mappends from right-to-left monadically
+  {-# INLINE foldrrM #-}
   foldrrM :: (Monoid m, MonadFix c) => (m -> m -> m -> a -> c b) -> (m -> a -> c m) -> f a -> c (f b,m)
   foldrrM f g = foldoM mempty (flip mappend) (flip mappend) $ \as ds t c -> mdo
     b <- f as ds t c
@@ -196,6 +204,7 @@ class Origami f where
     return (b,m)
 
 instance Origami [] where
+  {-# INLINE foldo #-}
   foldo m0 c1 c2 f la = (lb,final)
     where
       ~(lb,final) = go m0 la
@@ -205,8 +214,8 @@ instance Origami [] where
             where
               ~(b,st) = f as_st bs_st final a
               ~(bs,bs_st) = go (c1 as_st st) as
-  {-# INLINE foldo #-}
 
+  {-# INLINE foldoM #-}
   foldoM m c1 _ f la = mdo
     let go as_st [] = return ([],as_st)
         go as_st ~(a:as) = mdo
@@ -215,9 +224,9 @@ instance Origami [] where
           return (b:bs,c1 st bs_st)
     ~(lb,final) <- go m la
     return (lb,final)
-  {-# INLINE foldoM #-}
 
 instance Origami Tree where
+  {-# INLINE foldo #-}
   foldo m0 c1 c2 f ta = (tb,final)
     where
       ~(tb,final) = go m0 ta
@@ -232,8 +241,8 @@ instance Origami Tree where
                     where
                       ~(b,st) = go as_st a
                       ~(bs,bs_st) = go' as_st as
-  {-# INLINE foldo #-}
 
+  {-# INLINE foldoM #-}
   foldoM m0 c1 c2 f ta = mdo
 
     let go as_st (Node rt frst) = mdo
@@ -249,9 +258,9 @@ instance Origami Tree where
 
     ~(tb,final) <- go m0 ta
     return (tb,final)
-  {-# INLINE foldoM #-}
 
 instance Origami Seq where
+  {-# INLINE foldo #-}
   foldo m0 c1 _ f sa = (sb,final)
     where
       ~(sb,final) = go m0 sa
@@ -265,8 +274,8 @@ instance Origami Seq where
                   ~(bs,bs_st) = go as_st as
                 in
                   (b <| bs,c1 st bs_st)
-  {-# INLINE foldo #-}
 
+  {-# INLINE foldoM #-}
   foldoM m0 c1 _ f sa = mdo
     let go as_st sa =
           case viewl sa of
@@ -277,6 +286,5 @@ instance Origami Seq where
               return (b <| bs,c1 st bs_st)
     ~(sb,final) <- go m0 sa
     return (sb,final)
-  {-# INLINE foldoM #-}
   -- TODO: implement more efficient methods for Seq that
   --       actually deconstruct the Seq from right to left

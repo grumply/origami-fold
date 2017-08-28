@@ -9,7 +9,7 @@ cabal-version:  >= 1.10
 
 
 
-benchmark bench-ef
+benchmark bench-origami-fold
   type: exitcode-stdio-1.0
   main-is: Bench.hs
   hs-source-dirs: src tests bench
