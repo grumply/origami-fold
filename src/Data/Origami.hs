@@ -214,18 +214,18 @@ instance Origami [] where
     where
       ~(lb,final) = go m0 la
         where
-          go as_st []      = ([],as_st)
-          go as_st ~(a:as) = (b:bs,bs_st)
+          go _     []      = ([],mempty)
+          go as_st ~(a:as) = (b:bs,c1 st bs_st)
             where
               ~(b,st) = f as_st bs_st final a
-              ~(bs,bs_st) = go (c1 as_st st) as
+              ~(bs,bs_st) = go (c2 as_st st) as
 
   {-# INLINE foldoM #-}
-  foldoM m c1 _ f la = mdo
-    let go as_st [] = return ([],as_st)
+  foldoM m c1 c2 f la = mdo
+    let go _     []      = return ([],mempty)
         go as_st ~(a:as) = mdo
           ~(b,st) <- f as_st bs_st final a
-          ~(bs,bs_st) <- go as_st as
+          ~(bs,bs_st) <- go (c2 as_st st) as
           return (b:bs,c1 st bs_st)
     ~(lb,final) <- go m la
     return (lb,final)
@@ -239,55 +239,41 @@ instance Origami Tree where
           go as_st (Node rt frst) = (Node rt' frst',c1 st frst_st)
             where
               ~(rt',st)        = f as_st frst_st final rt
-              ~(frst',frst_st) = go' (c1 st as_st) frst
-                where
-                  go' _     []      = ([],mempty)
-                  go' as_st ~(a:as) = (b:bs,c2 st bs_st)
-                    where
-                      ~(b,st) = go as_st a
-                      ~(bs,bs_st) = go' as_st as
+              ~(frst',frst_st) = foldo mempty c2 c1 (\_ _ _ -> go (c1 as_st st)) frst
 
   {-# INLINE foldoM #-}
   foldoM m0 c1 c2 f ta = mdo
-
     let go as_st (Node rt frst) = mdo
           ~(rt',st)        <- f as_st frst_st final rt
-          ~(frst',frst_st) <- go' (c1 st as_st) frst
+          ~(frst',frst_st) <- foldoM mempty c2 c1 (\_ _ _ -> go (c1 as_st st)) frst
           return (Node rt' frst',c1 st frst_st)
-
-        go' _ [] = return ([],mempty)
-        go' as_st ~(a:as) = mdo
-          ~(b,st) <- go as_st a
-          ~(bs,bs_st) <- go' as_st as
-          return (b:bs,c2 st bs_st)
-
     ~(tb,final) <- go m0 ta
     return (tb,final)
 
 instance Origami Seq where
   {-# INLINE foldo #-}
-  foldo m0 c1 _ f sa = (sb,final)
+  foldo m0 c1 c2 f sa = (sb,final)
     where
       ~(sb,final) = go m0 sa
         where
           go as_st sa =
             case viewl sa of
-              EmptyL -> (mempty,as_st)
+              EmptyL -> (mempty,mempty)
               ~(a :< as) ->
                 let
                   ~(b,st) = f as_st bs_st final a
-                  ~(bs,bs_st) = go as_st as
+                  ~(bs,bs_st) = go (c2 as_st st) as
                 in
                   (b <| bs,c1 st bs_st)
 
   {-# INLINE foldoM #-}
-  foldoM m0 c1 _ f sa = mdo
+  foldoM m0 c1 c2 f sa = mdo
     let go as_st sa =
           case viewl sa of
-            EmptyL  -> return (mempty,as_st)
+            EmptyL  -> return (mempty,mempty)
             ~(a :< as) -> mdo
               ~(b,st) <- f as_st bs_st final a
-              ~(bs,bs_st) <- go as_st as
+              ~(bs,bs_st) <- go (c2 as_st st) as
               return (b <| bs,c1 st bs_st)
     ~(sb,final) <- go m0 sa
     return (sb,final)
