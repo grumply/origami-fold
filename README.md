@@ -4,19 +4,19 @@
 
 A type class of pure and recursive monadic origami-like lazy monoidal mapping folds.
 
-Performs an analysis, monoidally, and transformation, top-down or bottom-up, in a single pass; traverses a structure to produce a monoidal result where the intermediate and final monoidal values can be used to transform the values of the structure. Evaluation demand is driven by the choice of monoid. Evaluation order is lazy in pure cases or driven by the laziness of the underlying recursive monad in monadic cases.
+Performs an analysis, monoidally, and transformation, top-down or bottom-up, in a single pass; traverses a structure to produce a monoidal result where the intermediate and final monoidal values can be used to transform the values of the structure. 
 
 For instance, `foldo` can be used to calculate variance of a series and label each member of the series with its deviation in a single pass.
 
-While this function can be seen to traverse both top-down and bottom-up, to be productive, one approach must be chosen at the use site; choosing both top-down and bottom-up simultaneously would result in ```<<loop>>```. There are derivative methods to prevent such misuse:
+Evaluation is driven by the choice of monoid. In pure computations, evaluation order is based on the monoid chosen. In monadic compuations, evaluation order is driven by the underlying recursive monad.
+
+While `foldo` can be seen to simultaneously traverse both left-to-right and right-to-left or top-down and bottom-up, to be productive, one approach must be chosen at the use site; choosing both top-down and bottom-up simultaneously would result in ```<<loop>>```. There are derivative methods to prevent such misuse:
 
 These methods (and their (M)onadFix implementations) are safe:
-* foldll/M; fold from the start/top and combine monoidal values from left-to-right
-* foldrl/M; fold from the end/bottom and combine monoidal values from left-to-right
-* foldlr/M; fold from the start/top and combine monoidal values from right-to-left
-* foldrr/M; fold from the end/bottom and combine monoidal values from right-to-left
-
-The second (l|r) controls the evaluation of recursive substructures. For lists and sequences without substructure `foldll` and `foldlr` coincide and `foldrl` and `foldrr` coincide. This is not the case for trees where `foldll` is preorder traversal, `foldlr` is reverse preorder traversal, `foldrl` is postorder traversal and `foldrr` is reverse postorder traversal. `foldo` for trees is thus a single-algorithm generalization of pre- and post- order traversals where evaluation order is selected by the choice of monoid or the monoid and the recursive monadic context. 
+* foldll/M; fold from the left and combine monoidal values from the left; access ancestors for monoidal production
+* foldlr/M; fold from the left and combine monoidal values from the right; access ancestors for monoidal production
+* foldrl/M; fold from the right and combine monoidal values from the left; access descendants for monoidal production
+* foldrr/M; fold from the right and combine monoidal values from the right; access descendants for monoidal production
 
 ### Example
 
