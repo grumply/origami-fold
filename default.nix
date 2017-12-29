@@ -1,30 +1,10 @@
-{ compiler ? "ghc801" }:
-
-let
-  config = {
-    packageOverrides = pkgs: rec {
-      haskell = pkgs.haskell // {
-        packages = pkgs.haskell.packages // {
-          "${compiler}" = pkgs.haskell.packages."${compiler}".override {
-            overrides = new: old: rec {
-
-              trivial =
-                new.callPackage ./deps/trivial/trivial.nix { };
-
-              origami-fold =
-                new.callPackage ./origami-fold.nix { };
-
-            };
-          };
-        };
-      };
-    };
-  };
-
-  pkgs = import <nixpkgs> { inherit config; };
-
-in
-  { origami-fold = pkgs.haskell.packages.${compiler}.origami-fold;
-    trivial = pkgs.haskell.packages.${compiler}.trivial;
-  }
-
+{ mkDerivation, base, containers, deepseq, stdenv, trivial }:
+mkDerivation {
+  pname = "origami-fold";
+  version = "0.1.0.0";
+  src = ./.;
+  libraryHaskellDepends = [ base containers ];
+  testHaskellDepends = [ base containers deepseq trivial ];
+  benchmarkHaskellDepends = [ base containers deepseq trivial ];
+  license = stdenv.lib.licenses.bsd3;
+}
