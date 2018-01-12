@@ -16,6 +16,10 @@ These methods (and their (M)onadFix implementations) are safe:
 * foldrl/M; fold from the right and combine monoidal values from the left; access descendants for monoidal production
 * foldrr/M; fold from the right and combine monoidal values from the right; access descendants for monoidal production
 
+There are currently instances for `[]`, `Tree`, and `Seq`.
+
+If you know the name of this style of fold or find where I got the laziness or implementation wrong, I'd love to hear about it.
+
 ### Example
 
 As an example, imagine walking a structure and, for each element, `c`, labeling `c` with the length of the path from the starting element to `c` plus the count of elements after `c` plus one for `c` divided by the total number of elements in the structure - a relative weight of `c` within the structure.
