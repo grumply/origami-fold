@@ -8,7 +8,7 @@ For instance, `foldo` can be used to calculate variance of a series and label ea
 
 Evaluation is driven by the choice of monoid. In pure computations, evaluation order is based on the monoid chosen. In monadic compuations, evaluation order is driven by the underlying recursive monad.
 
-While `foldo` can be seen to simultaneously traverse both left-to-right and right-to-left or top-down and bottom-up, to be productive, one approach must be chosen at the use site; choosing both top-down and bottom-up simultaneously would result in ```<<loop>>```. There are derivative methods to prevent such misuse:
+`foldo` can be seen to simultaneously traverse both left-to-right and right-to-left or top-down and bottom-up. To be productive, however, one approach must be chosen at the use site; choosing both top-down and bottom-up simultaneously would result in ```<<loop>>```. There are derivative methods to prevent such misuse:
 
 These methods (and their (M)onadFix implementations) are safe:
 * foldll/M; fold from the left and combine monoidal values from the left; access ancestors for monoidal production
