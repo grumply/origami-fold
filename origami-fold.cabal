@@ -7,36 +7,6 @@ license-file:   LICENSE
 build-type:     Simple
 cabal-version:  >= 1.10
 
-
-
-benchmark bench-origami-fold
-  type: exitcode-stdio-1.0
-  main-is: Bench.hs
-  hs-source-dirs: src tests bench
-  ghc-options: -O2 -rtsopts -with-rtsopts=-T -v0
-  build-depends:
-      base >=4.8
-    , containers
-    , trivial
-    , deepseq
-  default-language: Haskell2010
-
-
-
-test-suite test-origami-fold
-  type: exitcode-stdio-1.0
-  main-is: Test.hs
-  hs-source-dirs: src tests
-  ghc-options: -O2
-  build-depends:
-      base >=4.8
-    , containers
-    , trivial
-    , deepseq
-  default-language: Haskell2010
-
-
-
 library
   hs-source-dirs:
       src
