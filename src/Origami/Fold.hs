@@ -2,7 +2,7 @@
 {-# language DefaultSignatures #-}
 {-# language TypeFamilies #-}
 {-# language RecursiveDo #-}
-module Data.Origami where
+module Origami.Fold where
 
 import Control.Monad.Fix
 

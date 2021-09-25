@@ -1,6 +1,6 @@
 module Main where
 
-import Data.Origami
+import Origami.Fold
 
 import Control.DeepSeq
 import Control.Exception
